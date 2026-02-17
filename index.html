@@ -660,5 +660,116 @@ end"></textarea>
         });
       }
     </script>
+    <style>
+      .notify-banner {
+        position: fixed;
+        top: 40px;
+        right: 8px;
+        background: rgba(20, 28, 42, 0.95);
+        border: 1px solid rgba(0, 245, 255, 0.3);
+        border-radius: 6px;
+        color: #8899aa;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        padding: 8px 32px 8px 12px;
+        z-index: 9999;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.3s, transform 0.3s;
+        pointer-events: none;
+      }
+      .notify-banner.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .notify-banner.fading {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      .notify-banner .banner-close {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #556677;
+        cursor: pointer;
+        font-size: 0.85rem;
+        padding: 0 2px;
+        line-height: 1;
+      }
+      .notify-banner .banner-close:hover { color: #aabbcc; }
+    </style>
+    <div class="notify-banner" id="notify-banner">
+      <span id="notify-text"></span>
+      <button class="banner-close" id="notify-close">&times;</button>
+    </div>
+    <script>
+      (function() {
+        var banner = document.getElementById('notify-banner');
+        var bannerText = document.getElementById('notify-text');
+        var bannerClose = document.getElementById('notify-close');
+        var bannerTimer = null;
+
+        function showBanner(msg) {
+          clearTimeout(bannerTimer);
+          banner.classList.remove('fading');
+          bannerText.textContent = msg;
+          banner.classList.add('visible');
+          bannerTimer = setTimeout(function() {
+            banner.classList.add('fading');
+            banner.classList.remove('visible');
+          }, 5000);
+        }
+
+        bannerClose.addEventListener('click', function() {
+          clearTimeout(bannerTimer);
+          banner.classList.add('fading');
+          banner.classList.remove('visible');
+        });
+
+        function isConnected() {
+          var el = document.getElementById('connection-status');
+          return el && el.classList.contains('connected');
+        }
+
+        document.addEventListener('click', function(e) {
+          if (isConnected()) return;
+          var btn = e.target.closest('#btn-auto');
+          if (btn) {
+            e.stopPropagation();
+            e.preventDefault();
+            showBanner('Connect to a server before making changes to automation.');
+            return;
+          }
+          var editBtn = e.target.closest('#btn-edit');
+          if (editBtn) {
+            e.stopPropagation();
+            e.preventDefault();
+            showBanner('Connect to a server before making changes to layout.');
+            return;
+          }
+        }, true);
+
+        document.addEventListener('click', function(e) {
+          if (e.target.closest('#close-settings')) {
+            var modal = document.getElementById('modal-settings');
+            if (modal) modal.classList.remove('active');
+          }
+        });
+      })();
+    </script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(reg) { console.log('[SW] Registered:', reg.scope); })
+            .catch(function(err) { console.error('[SW] Registration failed:', err); });
+        });
+      }
+    </script>
+</body>
 </body>
 </html>

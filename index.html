@@ -2238,3 +2238,114 @@ end"></textarea>
 
     })();
     </script>
+<!-- ═══════════════════════════════════════════════════════════
+         GMCP FRAME FIX — Issue #1
+         gmcp.mudstandards.org spec defines:
+           BINARY frames (ArrayBuffer) = ANSI terminal text
+           TEXT frames (string)        = GMCP structured data
+         The main handler has these inverted. This patch corrects
+         _onMessage, send(), and sendGMCP() on each connection
+         instance at session creation time.
+         ═══════════════════════════════════════════════════════════ -->
+    <script>
+    (function () {
+
+        function patchConnection(conn) {
+            if (!conn || conn._gmcpFrameFixed) return;
+            conn._gmcpFrameFixed = true;
+
+            // ── _onMessage: swap binary/text routing for GMCP ────────
+            var orig_onMessage = conn._onMessage.bind(conn);
+            conn._onMessage = function (e) {
+                // Only intervene for the GMCP protocol
+                if (this.protocol !== 'gmcp.mudstandards.org' && this.protocol !== 'gmcp') {
+                    return orig_onMessage(e);
+                }
+                var isBinary = e.data instanceof ArrayBuffer;
+                // Spec: BINARY = terminal text, TEXT = GMCP data (inverted from original)
+                if (isBinary) {
+                    this._handleTextFrame(e.data);
+                } else {
+                    this._handleGMCPBinaryFrame(e.data);
+                }
+            };
+
+            // ── send(): player commands → BINARY frame for GMCP ─────
+            var orig_send = conn.send.bind(conn);
+            conn.send = function (e) {
+                if (!this.socket || !this.connected) return;
+                if (this.protocol === 'gmcp.mudstandards.org' || this.protocol === 'gmcp') {
+                    // Spec: player commands sent as BINARY (ArrayBuffer)
+                    var encoded = this._encoder.encode(e + '\r\n');
+                    this.socket.send(encoded.buffer);
+                    // Still emit the command event
+                    var W = this._emit && this._emit.bind ? null : null;
+                    try { this._emit('command:sent', { command: e }); } catch (ex) {}
+                    return;
+                }
+                orig_send(e);
+            };
+
+            // ── sendGMCP(): GMCP data → TEXT frame for GMCP ──────────
+            var orig_sendGMCP = conn.sendGMCP.bind(conn);
+            conn.sendGMCP = function (e, t) {
+                if (!this.socket || !this.connected) return;
+                if (this.protocol === 'gmcp.mudstandards.org' || this.protocol === 'gmcp') {
+                    // Spec: GMCP messages sent as TEXT (string)
+                    var payload = t !== undefined ? e + ' ' + JSON.stringify(t) : e;
+                    this.socket.send(payload);
+                    return;
+                }
+                orig_sendGMCP(e, t);
+            };
+
+            console.log('[gmcp-fix] patched connection', conn.sessionId);
+        }
+
+        function hookSessionManager(sm) {
+            if (sm._gmcpFixPatched) return;
+            sm._gmcpFixPatched = true;
+
+            var origCreate = sm.createSession.bind(sm);
+            sm.createSession = function (connConfig, profileConfig) {
+                var sessionId = origCreate(connConfig, profileConfig);
+                setTimeout(function () {
+                    var s = sm.getSession(sessionId);
+                    if (s && s.connection) patchConnection(s.connection);
+                }, 0);
+                return sessionId;
+            };
+
+            // Also patch any sessions already open
+            sm.getAllSessions().forEach(function (s) {
+                if (s.connection) patchConnection(s.connection);
+            });
+
+            console.log('[gmcp-fix] sessionManager hooked');
+        }
+
+        function init() {
+            if (window.sessionManager) {
+                hookSessionManager(window.sessionManager);
+                return;
+            }
+            var attempts = 0;
+            var interval = setInterval(function () {
+                if (window.sessionManager) {
+                    clearInterval(interval);
+                    hookSessionManager(window.sessionManager);
+                } else if (++attempts > 50) {
+                    clearInterval(interval);
+                    console.warn('[gmcp-fix] sessionManager never appeared');
+                }
+            }, 100);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+
+    })();
+    </script>

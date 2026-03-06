@@ -1,48 +1,24 @@
 # MUDTERM.IO
 
-Universal MUD client. PWA. Runs in any browser. Installable to home screen.
-
-## mudstandards.org WebSocket Compliance
-
-- gmcp.mudstandards.org (TEXT = ANSI, BINARY = GMCP)
-- terminal.mudstandards.org (TEXT = ANSI only)
-- telnet.mudstandards.org (BINARY = full telnet stream)
-- extended.mudstandards.org (TEXT = ANSI, BINARY = telnet subneg)
-- json.mudstandards.org (TEXT = ANSI, BINARY = JSON envelope)
-
-## Telnet Options
-
-- ECHO (1) -- password masking
-- SGA (3) -- suppress go ahead
-- TTYPE (24) -- MTTS chain: MUDTERM, XTERM-256COLOR, MTTS 137
-- EOR (25) -- end of record prompt markers
-- NAWS (31) -- window size with auto-resize
-- MSDP (69) -- key-value game data with nested tables and arrays
-- MSSP (70) -- server status metadata
-- GMCP (201) -- JSON game data via subnegotiation
-- IAC escaping in all subnegotiation (send and receive)
-- Negotiation loop prevention via local/remote state tracking
-
-## GMCP Packages
-
-- Core.Hello, Core.Supports.Set
-- Char, Char.Vitals, Char.Status, Char.Items
-- Room, Room.Info
-- Comm, Comm.Channel
+Browser-based MUD client.
 
 ## Features
 
-- xterm.js terminal
-- Connection manager with saved connections
-- Direct WebSocket and Bridge (telnet proxy) connection types
-- Auto-negotiate or manual subprotocol selection
-- Profile system with auto-login sequences
-- Aliases (regex to command substitution)
-- Triggers (regex to action on incoming text)
-- Timers (interval-based commands)
-- Lua scripting (Fengari in-browser VM)
-- Draggable widgets (gauges, direction pad, buttons, map, room info)
-- Command history
-- Local echo toggle
-- Session logging with export
-- localStorage persistence
+- Multi-session — open multiple connections simultaneously, switch between them via tabs
+- Cloud sync — connection configs and profiles sync across devices when logged in
+- Auth — Google, GitHub, Discord login via OAuth
+- Connection types — direct WebSocket or bridge/proxy (Telnet over WebSocket)
+- Protocol support — auto-negotiate, GMCP, MCCP2, extended, telnet, terminal, JSON
+- Per-connection profiles — separate auto-login and automation per character
+- Automation — aliases, triggers, timers, scripts per profile
+- Widget system (in progress)  — button grids, vital gauges, direction pad, multi-pane layouts, dockable zones
+- Display settings — font family, size, line height, letter spacing, scrollback per connection
+- Input settings — local echo, command history, command separator per connection
+- MUD directory — browse and connect to MUDs via a relay server
+- Session logging
+- PWA — installable, service worker, works offline
+
+## Known Issues
+
+- MCCP2 compression not working
+- Echo foreground and background color settings not implemented
